@@ -1,12 +1,16 @@
 const {
  default: makeWASocket,
  useMultiFileAuthState,
- fetchLatestBaileysVersion,
- DisconnectReason
+ fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys")
 
 const P = require("pino")
-const qrcode = require("qrcode-terminal")
+const readline = require("readline")
+
+const rl = readline.createInterface({
+ input: process.stdin,
+ output: process.stdout
+})
 
 async function startBot() {
 
@@ -19,20 +23,30 @@ async function startBot() {
  const sock = makeWASocket({
    version,
    auth: state,
-   printQRInTerminal: false,
    logger: P({ level: "silent" })
  })
 
  sock.ev.on("creds.update", saveCreds)
 
- sock.ev.on("connection.update", ({ connection, qr }) => {
+ if (!sock.authState.creds.registered) {
 
-   if (qr) {
-     qrcode.generate(qr, { small: true })
-   }
+   rl.question(
+     "Enter WhatsApp number with country code: ",
+     async(number) => {
+
+       const code =
+       await sock.requestPairingCode(number)
+
+       console.log(`Pairing Code: ${code}`)
+
+     })
+ }
+
+ sock.ev.on("connection.update",
+ ({ connection }) => {
 
    if (connection === "open") {
-     console.log("CONNECTED SUCCESSFULLY")
+     console.log("BOT CONNECTED")
    }
 
  })
